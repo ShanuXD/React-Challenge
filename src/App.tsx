@@ -1,13 +1,13 @@
-import React, {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import './App.css';
 import axios from 'axios'
-// https://randomuser.me/api/?results=20
+const URL = "https://randomuser.me/api/?results=5"
 
 function App() {
   const [users, setUsers] = useState([])
   const [people, setPeople] = useState([])
-  const [input, setInput] = useState([])
   const [locationHeaders, setLocationHeaders] = useState<string[]>([])
+  const fetchUsers = useRef(()=>{})
 
   // flatten Object(remove nested Object)
   const flattenData = (obj:any)=>{
@@ -28,7 +28,7 @@ function App() {
     if(sortedUsers[0]['direction']==="unsorted" || sortedUsers[0]['direction']==='ascending'){
       sortedUsers.forEach((user:any)=>user['direction']='decending')
       // decending
-      console.log("ho")
+
       sortedUsers.sort((a:any, b:any)=>{
         if ( a[sortKey] > b[sortKey] ) return -1;
         if ( a[sortKey] < b[sortKey] ) return 1;
@@ -57,24 +57,32 @@ function App() {
   }
 
   // Collecting Data from Api
-  const fetchUsers = async ()=>{
-    const {data:{results}} = await axios.get("https://randomuser.me/api/?results=5")
-    setUsers(results)
+    fetchUsers.current = async ()=>{
+    const {data:{results}} = await axios.get(URL)
     getHeaders(results[0].location)
     const people = results.map((person:any, index:number)=>{
       const newDetails = flattenData(person.location)
       return {...newDetails, direction:"unsorted"}
     })
-    
+    setUsers(people)
     setPeople(people)
   }
 
+  // search value in rows
   const handleChange = (e:any)=>{
-    console.log(e.target.value)
+
+    const searchValue = e.target.value
+    const peopleList = [...users]
+    // const fliterPeople = peopleList.filter((row)=> JSON.stringify(row).toLowerCase().includes(searchValue))
+    const newFilterPeople = peopleList.filter((row)=>{
+      return Object.values(row).some((str)=>(""+str).toLowerCase().includes(searchValue))
+    })
+
+    setPeople(newFilterPeople)
   }
 
   useEffect(() => {
-    fetchUsers()
+    fetchUsers.current()
   }, [])
 
   if(users.length===0) return (<h1 className="App">Loading...</h1>)
